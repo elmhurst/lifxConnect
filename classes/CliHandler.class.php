@@ -48,44 +48,66 @@ class CliHandler
         $lifx = new LIFXApiConsumer();
         $requestOptions = array(
             'selector'  => $this->selector,
-            'queryData' => $this->dataString,
+            'data' => $this->dataString,
             'effect'    => $this->effect
         );
         switch (strtolower($this->action)) {
             case 'list lights':
             case 'list lamps':
-                $data = $lifx->listLamps($requestOptions);
-                $this->printer->printLamps($data);
+                $response = $lifx->listLamps($requestOptions);
+                if ($this->notError($response)) {
+                    $this->printer->printLamps($response['data']);
+                }
                 break;
 
             case 'list scenes':
-                $data = $lifx->listScenes($requestOptions);
-                $this->printer->printScenes($data);
+                $response = $lifx->listScenes($requestOptions);
+                if ($this->notError($response)) {
+                    $this->printer->printScenes($response['data']);
+                }
                 break;
 
             case 'toggle':
-                $data = $lifx->togglePower($requestOptions);
-                $this->printer->printStatus($data);
+                $response = $lifx->togglePower($requestOptions);
+                if ($this->notError($response)) {
+                    $this->printer->printStatus($response['data']);
+                }
                 break;
 
             case 'set power':
-                $data = $lifx->setPower($requestOptions);
-                $this->printer->printStatus($data);
+                $response = $lifx->setPower($requestOptions);
+                if ($this->notError($response)) {
+                    $this->printer->printStatus($response['data']);
+                }
                 break;
 
             case 'set color':
-                $data = $lifx->setColor($requestOptions);
-                $this->printer->printStatus($data);
+                $response = $lifx->setColor($requestOptions);
+                if ($this->notError($response)) {
+                    $this->printer->printStatus($response['data']);
+                }
                 break;
 
             case 'activate scene':
-                $data = $lifx->activateScene($requestOptions);
-                $this->printer->printStatus($data);
+                $response = $lifx->activateScene($requestOptions);
+                if ($this->notError($response)) {
+                    $this->printer->printStatus($response['data']);
+                }
+                break;
+
+            case 'choose scene':
+                $response = $lifx->listScenes($requestOptions);
+                if ($this->notError($response)) {
+                    $this->printer->printScenes($response['data']);
+                    $this->getSceneResponse($response['data'], $lifx);
+                }
                 break;
 
             case 'effect':
-                $data = $lifx->effect($requestOptions);
-                $this->printer->printStatus($data);
+                $response = $lifx->effect($requestOptions);
+                if ($this->notError($response)) {
+                    $this->printer->printStatus($response['data']);
+                }
                 break;
 
             default:
@@ -121,6 +143,11 @@ class CliHandler
         // list lights
         if ($this->matchArg('list-lamps', 'll')) {
             $this->action = 'List Lamps';
+        }
+
+        // choose a scene
+        if ($this->matchArg('choose-scene', 'cs')) {
+            $this->action = 'choose scene';
         }
 
         // selector
@@ -159,9 +186,48 @@ class CliHandler
                 $data .= "&".$this->cliArgs[$i];
                 $i++;
             }
-            $this->data = $data;
+            $this->dataString = $data;
         }
 
+        return true;
+    }
+
+    private function getSceneResponse($data, $lifx)
+    {
+        echo "Enter the number of the scene you would like to activate: ";
+        $handle = fopen('php://stdin', 'r');
+        $line = rtrim(fgets($handle), "\r\n");
+        if (!isset($data[$line])) {
+            echo "I couldn't find that scene, try another: ";
+            $handle = fopen('php://stdin', 'r');
+            $line = rtrim(fgets($handle), "\r\n");
+        }
+        if (!isset($data[$line])) {
+            echo "Still no good. Maybe next time?\n\n";
+            return false;
+        }
+        $sceneUuid = $data[$line]['uuid'];
+        $requestOptions = array(
+            'selector'  => $sceneUuid,
+            'data'      => "",
+            'effect'    => $this->effect
+        );
+        $response = $lifx->activateScene($requestOptions);
+        if ($this->notError($response)) {
+            $this->printer->printStatus($response['data']);
+        }
+    }
+
+    private function notError($response)
+    {
+        if (isset($response['data']['error'])) {
+            $this->printer->printError($response);
+            return false;
+        }
+        if ($response['http_code'] < 200 || $response['http_code'] > 300) {
+            $this->printer->printError($response);
+            return false;
+        }
         return true;
     }
 

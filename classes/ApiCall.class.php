@@ -11,10 +11,11 @@ class ApiCall
         'path' => 'lights/all'
     );
     private $tokenPath = "token.txt";
+    private $responseCode;
 
     public function __construct($options = array())
     {
-        $this->options = array_merge($options, $this->options);
+        $this->options = array_merge($this->options, $options);
     }
 
     public function setBasePath($url)
@@ -33,10 +34,13 @@ class ApiCall
         $authToken = file_get_contents($this->tokenPath);
         $URL = $this->basePath.$this->options['path'];
 
+        DataPrinter::printStr($URL, 'cyan');
+
         // initialise and authenticate
         $ch = curl_init($URL);
         curl_setopt($ch, CURLOPT_USERPWD, $authToken . ":");
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+
 
         // set the HTTP request method
         switch ($this->options['method']) {
@@ -53,13 +57,22 @@ class ApiCall
         }
 
         // add the data
-        if (is_array($this->options['data'])) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($this->options['data']));
+        if (isset($this->options['data'])) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $this->options['data']);
         }
 
         // execute and process
         $json_response = curl_exec($ch);
-        $response = json_decode($json_response, true);
+        $data = json_decode($json_response, true);
+
+        $this->responseCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        echo " ".$this->responseCode."\n";
+
+        $response = array(
+            'http_code' => $this->responseCode,
+            'data' => $data
+        );
 
         return $response;
     }
