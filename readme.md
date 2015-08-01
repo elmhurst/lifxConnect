@@ -5,7 +5,7 @@ It's a little command line lifx controller using the http API and php.
 
 Nothing too glamourous here just a useful way to learn the API.
 
-running `php lifxconnect.php --help provides the following info`
+running `php lifxconnect.php --help' provides the following info
 
 ```
 Usage: php lifxconnect.php [-s] <selector> [-d] <data>
