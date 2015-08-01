@@ -5,7 +5,7 @@ echo "\n";
 $selector = "all";
 $action = "";
 $method = "GET";
-$responseType = "light-list";
+$responseType = "Light List";
 $linkRoot = "https://api.lifx.com/v1beta1/lights/";
 $verbosity = 0;
 
@@ -17,7 +17,10 @@ $cyan   = "\033[1;36m";
 $white  = "\033[0m";
 $gray   = "\033[0;30m";
 $lgray  = "\033[0;37m";
+$purp   = "\033[0;35m";
 $lpurp  = "\033[1;35m";
+
+$nl = "\n";
 
 // help
 
@@ -42,7 +45,7 @@ if (in_array("--list-scenes", $argv)) {
     $selector = "";
     $action = "";
     $linkRoot = str_replace("lights/", "scenes", $linkRoot);
-    $responseType = "scene-list";
+    $responseType = "Scene List";
 }
 
 // list lights
@@ -51,7 +54,7 @@ if (in_array("--list-lights", $argv)) {
     $method = "GET";
     $selector = "all";
     $action = "";
-    $responseType = "light-list";
+    $responseType = "Light List";
 }
 
 // selector
@@ -74,7 +77,7 @@ if ($actionArg) {
     if (strlen($argv[$i]) > 0) {
         $action = "/".$argv[$i];
         $method = "POST";
-        $responseType = "status-list";
+        $responseType = "Status List";
     }
 }
 
@@ -99,19 +102,22 @@ if (isset($response['error'])) {
     die();
 }
 
+echo $nl.$lgreen.$responseType.$white.$nl;
+
 // Data
 switch ($responseType) {
-    case 'status-list':
+    case 'Status List':
         if (isset($response['label'])) {
             echo $response['label']. " status: ".$response['status']."\n";
         } else {
             foreach ($response as $key => $lamp) {
-                echo $lamp['label']. " status: ".$lamp['status']."\n";
+                echo $blue.$lamp['label']." status: ".$white.$lamp['status']."\n";
             }
         }
+        echo $nl;
         break;
 
-    case 'scene-list':
+    case 'Scene List':
         foreach ($response as $index => $scene) {
             echo $blue."Scene: ".$scene['name']."\033[0m\n";
             if ($verbosity > 2) {
@@ -120,10 +126,13 @@ switch ($responseType) {
                 echo $white;
             }
         }
-        echo $lgreen."\nUse -vvv for more detail.\n".$white;
+        echo $lgreen."\nUse -vvv for more detail.\n\n".$white;
         break;
 
-    case 'light-list':
+    case 'Light List':
+        if (isset($response['id'])) {
+            $response = array($response);
+        }
         foreach ($response as $index => $lamp) {
             echo $blue."\n  Lamp:   \t".$white.$lamp['label'];
             if ($verbosity > 0) {
@@ -144,7 +153,7 @@ switch ($responseType) {
                 echo "\n";
             }
         }
-        echo $lgreen."\nUse -v -vv -vvv for more/less detail\n".$white;
+        echo $lgreen."\nUse -v -vv -vvv for more/less detail\n\n".$white;
         break;
 
     default:
