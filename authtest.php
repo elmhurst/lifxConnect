@@ -2,6 +2,7 @@
 
 $selector = "all";
 $action = "/toggle";
+$method = "GET";
 
 // help
 
@@ -45,7 +46,9 @@ $link = "https://api.lifx.com/v1beta1/lights/$selector$action";
 $ch = curl_init($link);
 curl_setopt($ch, CURLOPT_USERPWD, $authToken . ":");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-curl_setopt($ch, CURLOPT_POST, 1);
+if ($action = "POST") {
+    curl_setopt($ch, CURLOPT_POST, 1);
+}
 echo "\n".$link."\n";
 $response = curl_exec($ch);
 $json_response = json_decode($response, true);
