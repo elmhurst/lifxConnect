@@ -1,4 +1,4 @@
-<?
+<?php
 namespace elmhurst\lifxConnect
 
 class LIFXApiConsumer {

@@ -1,28 +1,66 @@
-<?
+<?php
+
 namespace elmhurst\lifxConnect;
 
-class CliHandler {
+class CliHandler
+{
 
-    public $verbosity;
-    public $colours = array[
-        'red'    => "\033[1;31m";
-        'green'  => "\033[0;32m";
-        'lgreen' => "\033[1;32m";
-        'blue'   => "\033[1;34m";
-        'cyan'   => "\033[1;36m";
-        'white'  => "\033[0m";
-        'gray'   => "\033[0;30m";
-        'lgray'  => "\033[0;37m";
-        'purp'   => "\033[0;35m";
-        'lpurp'  => "\033[1;35m";
-    ]
+    public $colours = array(
+        'red'    => "\033[1;31m",
+        'green'  => "\033[0;32m",
+        'lgreen' => "\033[1;32m",
+        'blue'   => "\033[1;34m",
+        'cyan'   => "\033[1;36m",
+        'white'  => "\033[0m",
+        'gray'   => "\033[0;30m",
+        'lgray'  => "\033[0;37m",
+        'purp'   => "\033[0;35m",
+        'lpurp'  => "\033[1;35m"
+    );
+    private $verbosity;
+    private $selector;
+    private $action;
 
-    public function parseArgs()
+    public function __construct($start = true)
+    {
+        if ($start) {
+            $this->start();
+        }
+    }
+
+    public function start()
+    {
+        return $this->parseArgs;
+    }
+
+    public function say($string, $color = 'white', $newline = true)
+    {
+        echo $this->colours[$color];
+        echo $string;
+        echo ($newline)?"\n":"";
+    }
+
+    public function getAction()
+    {
+        return $this->action;
+    }
+
+    public function getSelector()
+    {
+        return $this->selector;
+    }
+
+    public function getVerbosity()
+    {
+        return $this->verbosity;
+    }
+
+    private function parseArgs()
     {
         // help
-        if (in_array("--help", $argv)) {
-            $this->say("Help will go here!",'red',true);
-            return 'help';
+        if ($this->matchArg('help', 'h')) {
+            $this->say("Help will go here!", 'red', true);
+            $this->action = 'Help';
         }
 
         // verbosity
@@ -35,52 +73,49 @@ class CliHandler {
         }
 
         // list scenes
-        if (in_array("--list-scenes", $argv)) {
-            $method = "GET";
-            $selector = "";
-            $action = "";
-            $linkRoot = str_replace("lights/", "scenes", $linkRoot);
-            $responseType = "Scene List";
+        if ($this->matchArg('list-scenes', 'ls')) {
+            $this->action = 'List Scenes';
+            return true;
         }
 
         // list lights
-        if (in_array("--list-lights", $argv)) {
-            $method = "GET";
-            $selector = "all";
-            $action = "";
-            $responseType = "Light List";
+        if (matchArg('list-lamps', 'll')) {
+            $this->action = 'List Lamps';
         }
 
         // selector
-        $selectorArg = array_search("--selector", $argv, true);
-        if ($selectorArg) {
-            $i = $selectorArg + 1;
+        $selectorArgPos = $this->findArg('selector', 's');
+        if ($selectorArgPos) {
+            $i = $selectorArgPos + 1;
             $selector = $argv[$i];
             $i++;
             while ($i < count($argv) && substr($argv[$i], 0, 1) != '-') {
                 $selector .= " ".$argv[$i];
                 $i++;
             }
+            $this->selector = $selector;
         }
 
         // action
-        $actionArg = array_search("--action", $argv, true);
-        if ($actionArg) {
-            $i = $actionArg + 1;
-            if (strlen($argv[$i]) > 0) {
-                $action = "/".$argv[$i];
-                $method = "POST";
-                $responseType = "Status List";
-            }
+        $actionArgPos = $this->findArg('action', 'a');
+        if ($actionArgPos) {
+            $this->action = $argv[$actionArgPos];
         }
+
+        return true;
     }
 
-    public function say($string, $color = 'white', $newline = true)
+    private function matchArg($long, $short)
     {
-        echo $this->colours[$color];
-        echo $string;
-        echo ($newline)?"\n":"";
+        return (in_array("--".$long, $argv) || in_array("-".$short, $argv));
     }
 
-
+    private function findArg($long, $short)
+    {
+        $ArgPos = array_search('--'.$long, $argv, true);
+        if ($argPos) {
+            return $argPos;
+        }
+        return array_search('-'.$short, $argv, true);
+    }
 }
