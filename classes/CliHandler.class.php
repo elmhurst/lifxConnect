@@ -5,24 +5,17 @@ namespace elmhurst\lifxConnect;
 class CliHandler
 {
 
-    public $colours = array(
-        'red'    => "\033[1;31m",
-        'green'  => "\033[0;32m",
-        'lgreen' => "\033[1;32m",
-        'blue'   => "\033[1;34m",
-        'cyan'   => "\033[1;36m",
-        'white'  => "\033[0m",
-        'gray'   => "\033[0;30m",
-        'lgray'  => "\033[0;37m",
-        'purp'   => "\033[0;35m",
-        'lpurp'  => "\033[1;35m"
-    );
-    private $verbosity;
-    private $selector;
-    private $action;
+    private $verbosity = 0;
+    private $selector = '';
+    private $action = '';
+    private $effect = '';
+    private $dataString;
+    private $cliArgs;
+    private $printer;
 
-    public function __construct($start = true)
+    public function __construct($argv, $start = true)
     {
+        $this->cliArgs = $argv;
         if ($start) {
             $this->start();
         }
@@ -30,14 +23,9 @@ class CliHandler
 
     public function start()
     {
-        return $this->parseArgs;
-    }
-
-    public function say($string, $color = 'white', $newline = true)
-    {
-        echo $this->colours[$color];
-        echo $string;
-        echo ($newline)?"\n":"";
+        $this->parseArgs();
+        $this->printer = new DataPrinter($this->verbosity);
+        $this->callApi();
     }
 
     public function getAction()
@@ -55,6 +43,56 @@ class CliHandler
         return $this->verbosity;
     }
 
+    public function callApi()
+    {
+        $lifx = new LIFXApiConsumer();
+        $requestOptions = array(
+            'selector'  => $this->selector,
+            'queryData' => $this->dataString,
+            'effect'    => $this->effect
+        );
+        switch (strtolower($this->action)) {
+            case 'list lights':
+            case 'list lamps':
+                $data = $lifx->listLamps($requestOptions);
+                $this->printer->printLamps($data);
+                break;
+
+            case 'list scenes':
+                $data = $lifx->listScenes($requestOptions);
+                $this->printer->printScenes($data);
+                break;
+
+            case 'toggle':
+                $data = $lifx->togglePower($requestOptions);
+                $this->printer->printStatus($data);
+                break;
+
+            case 'set power':
+                $data = $lifx->setPower($requestOptions);
+                $this->printer->printStatus($data);
+                break;
+
+            case 'set color':
+                $data = $lifx->setColor($requestOptions);
+                $this->printer->printStatus($data);
+                break;
+
+            case 'activate scene':
+                $data = $lifx->activateScene($requestOptions);
+                $this->printer->printStatus($data);
+                break;
+
+            case 'effect':
+                $data = $lifx->effect($requestOptions);
+                $this->printer->printStatus($data);
+                break;
+
+            default:
+                break;
+        }
+    }
+
     private function parseArgs()
     {
         // help
@@ -64,12 +102,14 @@ class CliHandler
         }
 
         // verbosity
-        if (in_array("-vvv", $argv)) {
+        if (in_array("-vvv", $this->cliArgs)) {
             $this->verbosity = 3;
-        } elseif (in_array("-vv", $argv)) {
+        } elseif (in_array("-vv", $this->cliArgs)) {
             $this->verbosity = 2;
-        } elseif (in_array("-v", $argv)) {
+        } elseif (in_array("-v", $this->cliArgs)) {
             $this->verbosity = 1;
+        } else {
+            $this->verbosity = 0;
         }
 
         // list scenes
@@ -79,7 +119,7 @@ class CliHandler
         }
 
         // list lights
-        if (matchArg('list-lamps', 'll')) {
+        if ($this->matchArg('list-lamps', 'll')) {
             $this->action = 'List Lamps';
         }
 
@@ -87,10 +127,10 @@ class CliHandler
         $selectorArgPos = $this->findArg('selector', 's');
         if ($selectorArgPos) {
             $i = $selectorArgPos + 1;
-            $selector = $argv[$i];
+            $selector = $this->cliArgs[$i];
             $i++;
-            while ($i < count($argv) && substr($argv[$i], 0, 1) != '-') {
-                $selector .= " ".$argv[$i];
+            while ($i < count($this->cliArgs) && substr($this->cliArgs[$i], 0, 1) != '-') {
+                $selector .= " ".$this->cliArgs[$i];
                 $i++;
             }
             $this->selector = $selector;
@@ -99,7 +139,27 @@ class CliHandler
         // action
         $actionArgPos = $this->findArg('action', 'a');
         if ($actionArgPos) {
-            $this->action = $argv[$actionArgPos];
+            $i = $actionArgPos + 1;
+            $action = $this->cliArgs[$i];
+            $i++;
+            while ($i < count($this->cliArgs) && substr($this->cliArgs[$i], 0, 1) != '-') {
+                $action .= " ".$this->cliArgs[$i];
+                $i++;
+            }
+            $this->action = $action;
+        }
+
+        // action
+        $dataArgPos = $this->findArg('data', 'd');
+        if ($dataArgPos) {
+            $i = $dataArgPos + 1;
+            $data = $this->cliArgs[$i];
+            $i++;
+            while ($i < count($this->cliArgs) && substr($this->cliArgs[$i], 0, 1) != '-') {
+                $data .= "&".$this->cliArgs[$i];
+                $i++;
+            }
+            $this->data = $data;
         }
 
         return true;
@@ -107,15 +167,15 @@ class CliHandler
 
     private function matchArg($long, $short)
     {
-        return (in_array("--".$long, $argv) || in_array("-".$short, $argv));
+        return (in_array("--".$long, $this->cliArgs) || in_array("-".$short, $this->cliArgs));
     }
 
     private function findArg($long, $short)
     {
-        $ArgPos = array_search('--'.$long, $argv, true);
+        $argPos = array_search('--'.$long, $this->cliArgs, true);
         if ($argPos) {
             return $argPos;
         }
-        return array_search('-'.$short, $argv, true);
+        return array_search('-'.$short, $this->cliArgs, true);
     }
 }
