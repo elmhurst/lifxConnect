@@ -76,13 +76,15 @@ class LIFXApiConsumer
         return $data;
     }
 
-    public function effect($effectName, $requestOptions)
+    public function effect($requestOptions)
     {
-
-    }
-
-    private function parseData($string, $defaults)
-    {
-
+        $callOptions = array(
+            "method" => "POST",
+            "data"   => $requestOptions['data'],
+            "path"   => 'lights/'.$requestOptions['selector'].'/effects/'.$requestOptions['effect']
+        );
+        $request = new ApiCall($callOptions);
+        $data = $request->doCall();
+        return $data;
     }
 }

@@ -124,4 +124,26 @@ class DataPrinter
         }
         echo "\n";
     }
+
+    public function printHelp()
+    {
+        $lgreen = "\033[1;32m";
+        $blue   = "\033[1;34m";
+        $white  = "\033[0m";
+        $lpurp  = "\033[1;35m";
+
+        echo "$blue\nUsage:$white php lifxconnect.php [-s] <selector> [-d] <data>\n\n";
+        echo " -h\t--help\t\tview this list\n";
+        echo " -ll\t--list-lamps\tList all lamps on network\n";
+        echo " -ls\t--list-scenes\tList all scenes\n";
+        echo " -cs\t--choose-scene\ta numbered prompt for scenes\n";
+        echo " -sn\t--scene-number\tdisplay a scene without prompting -sn 1\n";
+        echo " -s\t--selector\tspecify lights or groups, eg. -s label:desk lamp\n";
+        echo "  \t\t\t(see$blue http://api.developer.lifx.com/docs/selectors$white)\n";
+        echo " -d\t--data\t\tpass additional parameters eg. color=red state=on\n";
+        echo "  \t\t\t(see$blue http://api.developer.lifx.com/docs/set-power$white)\n";
+        echo " -a\t--action\tspecify a specific action eg. -a toggle -s all\n";
+        echo " -e\t--effect\tbreathe or pulse effect. -e breathe -d color=red\n";
+        echo $white."\n";
+    }
 }

@@ -12,6 +12,7 @@ class CliHandler
     private $dataString;
     private $cliArgs;
     private $printer;
+    private $sceneid;
 
     public function __construct($argv, $start = true)
     {
@@ -52,6 +53,10 @@ class CliHandler
             'effect'    => $this->effect
         );
         switch (strtolower($this->action)) {
+            case 'help':
+                $this->printer->printHelp();
+                break;
+
             case 'list lights':
             case 'list lamps':
                 $response = $lifx->listLamps($requestOptions);
@@ -99,7 +104,14 @@ class CliHandler
                 $response = $lifx->listScenes($requestOptions);
                 if ($this->notError($response)) {
                     $this->printer->printScenes($response['data']);
-                    $this->getSceneResponse($response['data'], $lifx);
+                    $this->getSceneUuid($response['data'], $lifx, true);
+                }
+                break;
+
+            case 'scene number':
+                $response = $lifx->listScenes($requestOptions);
+                if ($this->notError($response)) {
+                    $this->getSceneUuid($response['data'], $lifx, false);
                 }
                 break;
 
@@ -119,7 +131,6 @@ class CliHandler
     {
         // help
         if ($this->matchArg('help', 'h')) {
-            $this->say("Help will go here!", 'red', true);
             $this->action = 'Help';
         }
 
@@ -148,6 +159,20 @@ class CliHandler
         // choose a scene
         if ($this->matchArg('choose-scene', 'cs')) {
             $this->action = 'choose scene';
+        }
+
+        // choose a scene by number
+        $scenenumberArgPos = $this->findArg('scene-number', 'sn');
+        if ($scenenumberArgPos) {
+            $this->action = 'scene number';
+            $this->sceneid =  $this->cliArgs[$scenenumberArgPos+1];
+        }
+
+        // choose an effect
+        $scenenumberArgPos = $this->findArg('effect', 'e');
+        if ($scenenumberArgPos) {
+            $this->action = 'effect';
+            $this->effect =  $this->cliArgs[$scenenumberArgPos+1];
         }
 
         // selector
@@ -192,21 +217,25 @@ class CliHandler
         return true;
     }
 
-    private function getSceneResponse($data, $lifx)
+    private function getSceneUuid($data, $lifx, $ask = 'false')
     {
-        echo "Enter the number of the scene you would like to activate: ";
-        $handle = fopen('php://stdin', 'r');
-        $line = rtrim(fgets($handle), "\r\n");
-        if (!isset($data[$line])) {
-            echo "I couldn't find that scene, try another: ";
+        if ($ask) {
+            echo "Enter the number of the scene you would like to activate: ";
             $handle = fopen('php://stdin', 'r');
             $line = rtrim(fgets($handle), "\r\n");
+            if (!isset($data[$line])) {
+                echo "I couldn't find that scene, try another: ";
+                $handle = fopen('php://stdin', 'r');
+                $line = rtrim(fgets($handle), "\r\n");
+            }
+            if (!isset($data[$line])) {
+                echo "Still no good. Maybe next time?\n\n";
+                return false;
+            }
+            $sceneUuid = $data[$line]['uuid'];
+        } else {
+            $sceneUuid = $data[$this->sceneid]['uuid'];
         }
-        if (!isset($data[$line])) {
-            echo "Still no good. Maybe next time?\n\n";
-            return false;
-        }
-        $sceneUuid = $data[$line]['uuid'];
         $requestOptions = array(
             'selector'  => $sceneUuid,
             'data'      => "",
