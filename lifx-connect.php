@@ -92,6 +92,11 @@ curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 if ($method == "POST") {
     curl_setopt($ch, CURLOPT_POST, 1);
 }
+if ($method == "POST") {
+    curl_setopt($ch, CURLOPT_POST, 1);
+} elseif ($method == "PUT") {
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+}
 echo $cyan.$link.$white."\n";
 $json_response = curl_exec($ch);
 $response = json_decode($json_response, true);

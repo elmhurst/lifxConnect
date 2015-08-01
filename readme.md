@@ -1,4 +1,4 @@
-lifxcontroller
+lifxConnect
 ==============
 
-my initial attempt at a web api lifxcontroller
+My initial attempt at a web api lifx controller
